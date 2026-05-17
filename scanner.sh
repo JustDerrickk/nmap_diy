@@ -13,6 +13,7 @@ int_to_ip() {
 }
 
 cidr_to_range(){
+    local max_jobs=50
     local cidr=$1
     local ip="${cidr%/*}"
     local prefix="${cidr#*/}"
@@ -40,9 +41,15 @@ cidr_to_range(){
         local current_ip=$(int_to_ip "$i")
         count=$((count+1))
         printf "\rExplorées : %d / %d" "$count" "$total_hosts"
+        ( # ajout parallelisation
         if ping -c 1 -W 1 "$current_ip" > /dev/null 2>&1; then
             printf "\n%s UP\n" "$current_ip"
         fi
+        ) & 
+        if (( $(jobs -r | wc -l) >= max_jobs )); then
+            wait -n
+        fi
+
     done
     printf "\nScan terminé : %d hôtes explorés\n" "$count"
     
@@ -52,6 +59,7 @@ while true; do
     echo "=== nmap_diy ==="
     echo "1) Vérifier si une cible est accessible (ping)"
     echo "2) Trouver les machines actives d'un réseau local"
+    echo "3) Scanner les ports d'une machine"
     echo "q) Quitter"
     read -p "Choix: " choice
 
@@ -71,6 +79,11 @@ while true; do
             echo "Scan en cours pour le réseau $subnet..."
 
             cidr_to_range "$subnet"
+            ;;
+        3)
+            read -p "Entrez une adresse IP : " ip
+            echo "Scan des ports pour $ip..."
+            
             ;;
         q|Q)
             echo "Au revoir."
