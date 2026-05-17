@@ -54,6 +54,23 @@ cidr_to_range(){
     printf "\nScan terminé : %d hôtes explorés\n" "$count"
     
 }
+
+scan_ports() {
+    local ip=$1
+    local ports=(22 80 443)
+    local open_found=0
+    for port in "${ports[@]}"; do
+        if timeout 1 bash -c "echo > /dev/tcp/$ip/$port" 2>/dev/null; then
+            echo "Port $port ouvert sur $ip"
+            open_found=1
+        fi
+    done
+
+    if (( open_found == 0 )); then
+        echo "Aucun port générique ouvert sur $ip"
+    fi
+}
+
 while true; do
     echo
     echo "=== nmap_diy ==="
@@ -83,7 +100,7 @@ while true; do
         3)
             read -p "Entrez une adresse IP : " ip
             echo "Scan des ports pour $ip..."
-            
+            scan_ports "$ip"
             ;;
         q|Q)
             echo "Au revoir."
